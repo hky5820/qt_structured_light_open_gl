@@ -27,7 +27,9 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
         main.cpp \
         mainwindow.cpp \
-    glwidget.cpp
+    glwidget.cpp \
+    others.cpp \
+    square.cpp
 
 HEADERS += \
         mainwindow.h \
@@ -41,7 +43,12 @@ HEADERS += \
     fancyslider4.h \
     plookreset.h \
     setpandc.h \
-    plookfix.h
+    plookfix.h \
+    square.h
 
 FORMS += \
         mainwindow.ui
+
+DISTFILES += \
+    fshader.glsl \
+    vshader.glsl

@@ -1,8 +1,10 @@
 #include "glwidget.h"
+#include "square.h"
 #include <QTextStream>
 #include <QDebug>
 
-GLWidget::GLWidget(QWidget *parent) : QOpenGLWidget(parent)
+GLWidget::GLWidget(QWidget *parent)
+    : QOpenGLWidget(parent)
 {
 
 }
@@ -121,78 +123,115 @@ void GLWidget::initializeGL()
 {
     glFrontFace(GL_CCW);
     glEnable(GL_CULL_FACE);
-    glEnableClientState(GL_COLOR_ARRAY);
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glColorPointer(3, GL_FLOAT, 0, MyColors);
-    glVertexPointer(3, GL_FLOAT, 0, MyVertices);
-
     glClearColor(1.0, 1.0, 1.0, 1.0);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+
+//    glEnableClientState(GL_COLOR_ARRAY);
+//    glEnableClientState(GL_VERTEX_ARRAY);
+//    glColorPointer(3, GL_FLOAT, 0, MyColors);
+//    glVertexPointer(3, GL_FLOAT, 0, MyVertices);
+//    glMatrixMode(GL_MODELVIEW);
+//    glLoadIdentity();
+
+    QOpenGLShader vShader( QOpenGLShader::Vertex );
+    vShader.compileSourceFile("C:/Users/CGLAB/Desktop/test/OpenGL/vshader.glsl");
+
+    QOpenGLShader fShader( QOpenGLShader::Fragment );
+    fShader.compileSourceFile("C:/Users/CGLAB/Desktop/test/OpenGL/fshader.glsl");
+
+    m_program.addShader(&vShader);
+    m_program.addShader(&fShader);
+
+    if(!m_program.link()){
+        qWarning( " Error : unable to link a shader program.");
+        return;
+    }
+
+    m_vertexAttr = m_program.attributeLocation( "vertexAttr");
+    m_colorAttr = m_program.attributeLocation("colorAttr");
+    m_matrixUniform = m_program.uniformLocation("matrix");
+
+    m_square = new Square(&m_program, m_vertexAttr, m_colorAttr);
 }
 
 void GLWidget::paintGL()
 {
-    double tt = sqrtf(powf(world_look_vector[0],2) + powf(world_look_vector[1],2) + powf(world_look_vector[2],2));
+    if(!m_program.bind()){
+        qWarning( " Bind Error.");
+        return;
+    }
 
+    int w = GLWidget::widht;
+    int h = GLWidget::height;
     GLWidget::camera_fov = cf;
     GLWidget::projector_fov = pf;
     GLWidget::world_fov = wf;
     GLWidget::l = le / 150.0;
     GLWidget::u = upp / 150.0;
     GLWidget::length = len;
-    int w = GLWidget::widht;
-    int h = GLWidget::height;
-
+    double tt = sqrtf(powf(world_look_vector[0],2) + powf(world_look_vector[1],2) + powf(world_look_vector[2],2));
     Upvector();
     WorldUpVector();
 
+
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluPerspective(GLWidget::camera_fov, 1.0, 0.0, 10.0);
-
-    glMatrixMode(GL_MODELVIEW);
+    QMatrix4x4 matrix;
+    matrix.perspective(GLWidget::camera_fov, 1.0, 0.0, 10.0);
     glViewport(0, h/2, w/2, h/2);
-    glPushMatrix();
-        gluLookAt(cc[0], cc[1], cc[2],   0.0, 0.0, 0.0,   camera_up_vector[0], camera_up_vector[1], camera_up_vector[2]);
-        DrawScene();
-    glPopMatrix();
+
+    QVector3D eye(cc[0],cc[1],cc[2]);
+    QVector3D center(0.0,0.0,0.0);
+    QVector3D up(camera_up_vector[0],camera_up_vector[1],camera_up_vector[2]);
+    matrix.lookAt(eye,center,up);
+
+    matrix.rotate(rot_set, 0,1,0);
+    m_program.setUniformValue(m_matrixUniform, matrix);
+    m_square->draw();
+
+    matrix.setToIdentity();
+    if(!matrix.isIdentity()){
+        qWarning("1st matrix is not identity");
+    }
 
 
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluPerspective(GLWidget::projector_fov, 1.0, 0.0, 10.0);
 
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+    matrix.perspective(GLWidget::projector_fov, 1.0, 0.0, 10.0);
     glViewport(w/2, h/2, w/2, h/2);
-    glPushMatrix();
-        gluLookAt(cc[0]-v[0] * GLWidget::length, cc[1], cc[2]-v[2] * GLWidget::length,
-                 -v[0] * GLWidget::length, 0.0, -v[2] * GLWidget::length,
-                camera_up_vector[0], camera_up_vector[1], camera_up_vector[2]);
-        DrawScene();
-    glPopMatrix();
+    eye.setX(cc[0]-v[0] * GLWidget::length); eye.setY(cc[1]); eye.setZ(cc[2]-v[2] * GLWidget::length);
+    center.setX(-v[0] * GLWidget::length); center.setY(0.0); center.setZ(-v[2] * GLWidget::length);
+
+    matrix.lookAt(eye,center,up);
+    matrix.rotate(rot_set, 0,1,0);
+    m_program.setUniformValue(m_matrixUniform, matrix);
+    m_square->draw();
 
 
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluPerspective(GLWidget::world_fov, 1.0, 0.0, 10.0);
+    matrix.setToIdentity();
+    if(!matrix.isIdentity()){
+        qWarning("2nd matrix is not identity");
+    }
 
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+
+
+    matrix.perspective(GLWidget::world_fov, 1.0, 0.0, 10.0);
     glViewport(0, 0, w/2, h/2);
-    glPushMatrix();
-        gluLookAt(wc[0] + wv[0] * GLWidget::l + world_look_vector[0]/tt * GLWidget::u,
-                wc[1]+ wv[1] * GLWidget::l + world_look_vector[1]/tt * GLWidget::u,
-                wc[2] + wv[2] * GLWidget::l + world_look_vector[2]/tt * GLWidget::u,
-                0.0 + wv[0] * GLWidget::l, 0.0 + wv[1] * GLWidget::l, 0.0 + wv[2] * GLWidget::l ,
-                world_up_vector[0], world_up_vector[1], world_up_vector[2]);
-        DrawWorldScene();
-    glPopMatrix();
+    eye.setX(wc[0] + wv[0] * GLWidget::l + world_look_vector[0]/tt * GLWidget::u);
+    eye.setY(wc[1]+ wv[1] * GLWidget::l + world_look_vector[1]/tt * GLWidget::u);
+    eye.setZ(wc[2] + wv[2] * GLWidget::l + world_look_vector[2]/tt * GLWidget::u);
+    center.setX(0.0 + wv[0] * GLWidget::l);
+    center.setY(0.0 + wv[1] * GLWidget::l);
+    center.setZ(0.0 + wv[2] * GLWidget::l);
+    up.setX(world_up_vector[0]);
+    up.setY(world_up_vector[1]);
+    up.setZ(world_up_vector[2]);
+    matrix.lookAt(eye,center,up);
+
+    matrix.rotate(rot,0,1,0);
+    m_program.setUniformValue(m_matrixUniform, matrix);
+    m_square->draw();
 
 
+    m_program.release();
 
 
     glViewport(0, 0, w, h);
@@ -206,6 +245,7 @@ void GLWidget::paintGL()
         glVertex3f(0, 1, 0);
     glEnd();
 
+
     QTimer *timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(update()));
     timer->start(100);
@@ -217,34 +257,166 @@ void GLWidget::resizeGL(int w, int h)
     GLWidget::height = h;
 }
 
+Square::Square(QOpenGLShaderProgram *program,
+               int vertexAttr, int colorAttr) :
+m_program( program ),
+m_vertexAttr( vertexAttr ),
+m_colorAttr( colorAttr )
+{
+   initVertices();
+   initColors();
+   initList();
+}
+
+void Square::draw(){
+    m_program->setAttributeArray( m_vertexAttr, m_vertices.data(), 3 );
+    m_program->setAttributeArray( m_colorAttr, m_colors.data(), 3 );
+
+    m_program->enableAttributeArray( m_vertexAttr );
+    m_program->enableAttributeArray( m_colorAttr );
+
+    for(GLint i = 0; i< 6; i++){
+        glDrawElements(GL_POLYGON, 4, GL_UNSIGNED_BYTE, &m_vertex_list[4*i]);
+    }
+
+    m_program->disableAttributeArray( m_vertexAttr );
+    m_program->disableAttributeArray( m_colorAttr );
+}
+
+void Square::initVertices(){
+
+    m_vertices.resize(24);
+
+    m_vertices[0] = -0.25;
+    m_vertices[1] = -0.25;
+    m_vertices[2] = 0.25;
+
+    m_vertices[3] = -0.25;
+    m_vertices[4] = 0.25;
+    m_vertices[5] = 0.25;
+
+    m_vertices[6] = 0.25;
+    m_vertices[7] = 0.25;
+    m_vertices[8] = 0.25;
+
+    m_vertices[9] = 0.25;
+    m_vertices[10] = -0.25;
+    m_vertices[11] = 0.25;
+
+    m_vertices[12] = -0.25;
+    m_vertices[13] = -0.25;
+    m_vertices[14] = -0.25;
+
+    m_vertices[15] = -0.25;
+    m_vertices[16] = 0.25;
+    m_vertices[17] = -0.25;
+
+    m_vertices[18] = 0.25;
+    m_vertices[19] = 0.25;
+    m_vertices[20] = -0.25;
+
+    m_vertices[21] = 0.25;
+    m_vertices[22] = -0.25;
+    m_vertices[23] = -0.25;
+}
+
+void Square::initColors(){
+
+    m_colors.resize(24);
+
+    m_colors[0] = 0.2;
+    m_colors[1] = 0.2;
+    m_colors[2] = 0.2;
+
+    m_colors[3] = 1.0;
+    m_colors[4] = 0.0;
+    m_colors[5] = 0.0;
+
+    m_colors[6] = 1.0;
+    m_colors[7] = 1.0;
+    m_colors[8] = 0.0;
+
+    m_colors[9]   = 0.0;
+    m_colors[10]  = 1.0;
+    m_colors[11]  = 0.0;
+
+    m_colors[12]  = 0.0;
+    m_colors[13]  = 0.0;
+    m_colors[14]  = 1.0;
+
+    m_colors[15]  = 1.0;
+    m_colors[16]  = 0.0;
+    m_colors[17]  = 1.0;
+
+    m_colors[18]  = 1.0;
+    m_colors[19]  = 1.0;
+    m_colors[20]  = 1.0;
+
+    m_colors[21]  = 0.0;
+    m_colors[22]  = 1.0;
+    m_colors[23]  = 1.0;
+}
+
+void Square::initList(){
+
+    m_vertex_list.resize(24);
+
+    m_vertex_list[0] = 0;
+    m_vertex_list[1] = 3;
+    m_vertex_list[2] = 2;
+    m_vertex_list[3] = 1;
+
+    m_vertex_list[4] = 2;
+    m_vertex_list[5] = 3;
+    m_vertex_list[6] = 7;
+    m_vertex_list[7] = 6;
+
+    m_vertex_list[8] = 0;
+    m_vertex_list[9] = 4;
+    m_vertex_list[10] = 7;
+    m_vertex_list[11] = 3;
+
+    m_vertex_list[12] = 1;
+    m_vertex_list[13] = 2;
+    m_vertex_list[14] = 6;
+    m_vertex_list[15] = 5;
+
+    m_vertex_list[16] = 4;
+    m_vertex_list[17] = 5;
+    m_vertex_list[18] = 6;
+    m_vertex_list[19] = 7;
+
+    m_vertex_list[20] = 0;
+    m_vertex_list[21] = 1;
+    m_vertex_list[22] = 5;
+    m_vertex_list[23] = 4;
+}
+
+
+
+
+
+
+
+
+
+
 
 FancySlider::FancySlider(QWidget * parent)
     : QSlider(parent)
 {
     setValue(50);
 }
-FancySlider::FancySlider(Qt::Orientation orientation, QWidget * parent)
-    : QSlider(orientation, parent)
-{
-}
-
 void FancySlider::sliderChange(QAbstractSlider::SliderChange change)
 {
     len = (double)value()/ (double)50;
 }
 
 
-
 FancySlider2::FancySlider2(QWidget * parent)
     : QSlider(parent)
 {
 }
-
-FancySlider2::FancySlider2(Qt::Orientation orientation, QWidget * parent)
-    : QSlider(orientation, parent)
-{
-}
-
 void FancySlider2::sliderChange(QAbstractSlider::SliderChange change)
 {
     cf = value()/ (double)99 * 25 + 15;
@@ -255,27 +427,16 @@ FancySlider3::FancySlider3(QWidget * parent)
     : QSlider(parent)
 {
 }
-
-FancySlider3::FancySlider3(Qt::Orientation orientation, QWidget * parent)
-    : QSlider(orientation, parent)
-{
-}
-
 void FancySlider3::sliderChange(QAbstractSlider::SliderChange change)
 {
     pf = value()/ (double)99 * 25 + 15;
 }
 
+
 FancySlider4::FancySlider4(QWidget * parent)
     : QSlider(parent)
 {
 }
-
-FancySlider4::FancySlider4(Qt::Orientation orientation, QWidget * parent)
-    : QSlider(orientation, parent)
-{
-}
-
 void FancySlider4::sliderChange(QAbstractSlider::SliderChange change)
 {
     wf = value()/ (double)99 * 25 + 15;
@@ -287,12 +448,6 @@ FancySlider5::FancySlider5(QWidget * parent)
 {
     setValue(50);
 }
-
-FancySlider5::FancySlider5(Qt::Orientation orientation, QWidget * parent)
-    : QSlider(orientation, parent)
-{
-}
-
 void FancySlider5::sliderChange(QAbstractSlider::SliderChange change)
 {
      le = (value() - 50) * 3.0;
@@ -304,12 +459,6 @@ FancySlider6::FancySlider6(QWidget * parent)
 {
     setValue(50);
 }
-
-FancySlider6::FancySlider6(Qt::Orientation orientation, QWidget * parent)
-    : QSlider(orientation, parent)
-{
-}
-
 void FancySlider6::sliderChange(QAbstractSlider::SliderChange change)
 {
     upp = (value() - 50) * 5.0;
@@ -321,24 +470,12 @@ FancySlider7::FancySlider7(QWidget * parent)
 {
     setValue(0);
 }
-
-FancySlider7::FancySlider7(Qt::Orientation orientation, QWidget * parent)
-    : QSlider(orientation, parent)
-{
-}
-
 void FancySlider7::sliderChange(QAbstractSlider::SliderChange change)
 {
 
     rot = value() / 99.0 * 360.0;
 }
 
-
-
-
-SetPandC::SetPandC(QWidget * parent) : QPushButton( parent)
-{
-}
 
 void SetPandC::mousePressEvent(QMouseEvent *event){
     double tt = sqrtf(powf(world_look_vector[0],2) + powf(world_look_vector[1],2) + powf(world_look_vector[2],2));
@@ -349,41 +486,10 @@ void SetPandC::mousePressEvent(QMouseEvent *event){
     rot_set = rot;
 }
 
-PLookFix::PLookFix(QWidget * parent) : QPushButton( parent)
-{
-    
-}
-
 void PLookFix::mousePressEvent(QMouseEvent *event){
 
-}
-
-PLookReset::PLookReset(QWidget * parent) : QPushButton( parent)
-{
 }
 
 void PLookReset::mousePressEvent(QMouseEvent *event){
 
 }
-
-
-//PushRight::PushRight(QWidget * parent) : QPushButton( parent)
-//{
-//}
-
-//void PushRight::mousePressEvent(QMouseEvent *event){
-//    le++;
-//    qDebug() << "left = "<< le;
-//}
-
-//PushDown::PushDown(QWidget * parent) : QPushButton( parent)
-//{
-//}
-
-//void PushDown::mousePressEvent(QMouseEvent *event){
-//    upp--;
-
-//   // qDebug() << "down = "<< d;
-//}
-
-

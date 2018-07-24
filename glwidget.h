@@ -14,7 +14,8 @@
 #include "fancyslider5.h"
 #include "fancyslider6.h"
 #include "fancyslider7.h"
-
+#include <QOpenGLShaderProgram>
+#include "square.h"
 
 class GLWidget : public QOpenGLWidget
 {
@@ -35,6 +36,13 @@ public:
     double world_fov;
 
     double l, u;
+
+    Square *m_square;
+    QOpenGLShaderProgram m_program;
+
+    int m_vertexAttr;
+    int m_colorAttr;
+    int m_matrixUniform;
 };
 
 class FancySlider : public QSlider
@@ -131,13 +139,13 @@ public:
 protected:
     virtual void mousePressEvent(QMouseEvent *event);
 };
+
 class PLookFix : public QPushButton
 {
     Q_OBJECT //don't forget this macro, or your signals/slots won't work
 
 public:
     PLookFix(QWidget * parent = 0);
-    bool a = false;
 
 protected:
     virtual void mousePressEvent(QMouseEvent *event);
@@ -150,7 +158,6 @@ class PLookReset : public QPushButton
 
 public:
     PLookReset(QWidget * parent = 0);
-    bool a = false;
 
 protected:
     virtual void mousePressEvent(QMouseEvent *event);
