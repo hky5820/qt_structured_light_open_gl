@@ -1,0 +1,4 @@
+#ifndef FANCYSLIDER6_H
+#define FANCYSLIDER6_H
+
+#endif // FANCYSLIDER6_H
