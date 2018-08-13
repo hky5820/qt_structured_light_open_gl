@@ -46,14 +46,58 @@ float vertices[] = {
     -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 };
 
+float lamp_vertices[] = {
+      -0.5f, -0.5f, -0.5f,
+       0.5f, -0.5f, -0.5f,
+       0.5f,  0.5f, -0.5f,
+       0.5f,  0.5f, -0.5f,
+      -0.5f,  0.5f, -0.5f,
+      -0.5f, -0.5f, -0.5f,
+
+      -0.5f, -0.5f,  0.5f,
+       0.5f, -0.5f,  0.5f,
+       0.5f,  0.5f,  0.5f,
+       0.5f,  0.5f,  0.5f,
+      -0.5f,  0.5f,  0.5f,
+      -0.5f, -0.5f,  0.5f,
+
+      -0.5f,  0.5f,  0.5f,
+      -0.5f,  0.5f, -0.5f,
+      -0.5f, -0.5f, -0.5f,
+      -0.5f, -0.5f, -0.5f,
+      -0.5f, -0.5f,  0.5f,
+      -0.5f,  0.5f,  0.5f,
+
+       0.5f,  0.5f,  0.5f,
+       0.5f,  0.5f, -0.5f,
+       0.5f, -0.5f, -0.5f,
+       0.5f, -0.5f, -0.5f,
+       0.5f, -0.5f,  0.5f,
+       0.5f,  0.5f,  0.5f,
+
+      -0.5f, -0.5f, -0.5f,
+       0.5f, -0.5f, -0.5f,
+       0.5f, -0.5f,  0.5f,
+       0.5f, -0.5f,  0.5f,
+      -0.5f, -0.5f,  0.5f,
+      -0.5f, -0.5f, -0.5f,
+
+      -0.5f,  0.5f, -0.5f,
+       0.5f,  0.5f, -0.5f,
+       0.5f,  0.5f,  0.5f,
+       0.5f,  0.5f,  0.5f,
+      -0.5f,  0.5f,  0.5f,
+      -0.5f,  0.5f, -0.5f,
+  };
+
 double len = 0;
 double cf = 15;
 double pf = 15;
 double wf = 15;
 
 double oc[3] = {0.0, 0.0, 0.0};
-double cc[3] = {0.0, 0.0, 3.0};
-double wc[3] = {5.0, 3.0, 0.0};
+double cc[3] = {0.0, 0.0, -3.0};
+double wc[3] = {0.0, 0.0, -3.0};
 
 double camera_look_vector[3] = {oc[0]-cc[0], oc[1]-cc[1], oc[2]-cc[2]};
 double camera_up_vector[3] = {0.0, 0.0, 0.0};
@@ -187,7 +231,7 @@ void GLWidget::paintGL()
     WorldUpVector();
 
 
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glActiveTexture(GL_TEXTURE0);
@@ -201,9 +245,10 @@ void GLWidget::paintGL()
     view = glm::mat4();
     projection = glm::mat4();
 
-    qDebug() << GLWidget::camera_fov;
+    //qDebug() << GLWidget::camera_fov;
     view  = glm::lookAt(glm::vec3(cc[0],cc[1],cc[2]), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(camera_up_vector[0], camera_up_vector[1], camera_up_vector[2]));
-    view = glm::rotate(view, (float)glm::radians(rot_set), glm::vec3(camera_up_vector[0], camera_up_vector[1], camera_up_vector[2]));
+    //view = glm::rotate(view, (float)glm::radians(rot_set), glm::vec3(camera_up_vector[0], camera_up_vector[1], camera_up_vector[2]));
+    view = glm::rotate(view, (float)glm::radians(rot_set), glm::vec3(0, 1, 0));
     projection = glm::perspective(glm::radians((float)GLWidget::camera_fov), (float)w/ (float)h, 0.1f, 100.0f);
     ourShader.setMat4("model",model);
     ourShader.setMat4("view",view);
@@ -213,17 +258,20 @@ void GLWidget::paintGL()
     glBindVertexArray(VAO);
     glDrawArrays(GL_TRIANGLES, 0, 36);
 
+
+
     glViewport(w/2, h/2, w/2, h/2);
-    model = glm::mat4();
-    view = glm::mat4();
-    projection = glm::mat4();
+    model = glm::mat4(1.0);
+    view = glm::mat4(1.0);
+    projection = glm::mat4(1.0);
+
+    qDebug() << cc[0] << cc[1] << cc[2] ;
 
     glm::vec3 eye_position(cc[0]-v[0] * GLWidget::length, cc[1], cc[2]-v[2] * GLWidget::length);
     glm::vec3 eye_look(-v[0] * GLWidget::length, 0.0, -v[2] * GLWidget::length);
 
     view = glm::lookAt(eye_position, eye_look, glm::vec3(camera_up_vector[0], camera_up_vector[1], camera_up_vector[2]));
     projection = glm::perspective(glm::radians((float)GLWidget::projector_fov), (float)w/ (float)h, 0.1f, 100.0f);
-
     ourShader.setMat4("model",model);
     ourShader.setMat4("view",view);
     ourShader.setMat4("projection", projection);
@@ -232,16 +280,66 @@ void GLWidget::paintGL()
     glBindVertexArray(VAO);
     glDrawArrays(GL_TRIANGLES, 0, 36);
 
-//    glViewport(0,0,w/2,h/2);
-//    eye_position.x =
 
+
+    glViewport(0,0,w/2,h/2);
+    model = glm::mat4(1.0);
+    view = glm::mat4(1.0);
+    projection = glm::mat4(1.0);
+
+    eye_position.x = wc[0] - wv[0] * GLWidget::l + world_look_vector[0]/tt * GLWidget::u;
+    eye_position.y = wc[1] - wv[1] * GLWidget::l + world_look_vector[1]/tt * GLWidget::u;
+    eye_position.z = wc[2] - wv[2] * GLWidget::l + world_look_vector[2]/tt * GLWidget::u;
+
+//    eye_look.x = wv[0] * GLWidget::l;
+//    eye_look.y = wv[1] * GLWidget::l;
+//    eye_look.z = wv[2] * GLWidget::l;
+    eye_look.x = 0;
+    eye_look.y = 0;
+    eye_look.z = 0;
+
+    //qDebug() << "rot = " << rot;
+
+    view = glm::lookAt(eye_position, eye_look, glm::vec3(world_up_vector[0], world_up_vector[1], world_up_vector[2]));
+    view = glm::rotate(view, (float)glm::radians(rot), glm::vec3(0, 1, 0));
+    projection = glm::perspective(glm::radians((float)GLWidget::world_fov), (float)w/(float)h, 0.1f, 100.0f);
+
+
+
+    ourShader.setMat4("model",model);
+    ourShader.setMat4("view",view);
+    ourShader.setMat4("projection", projection);
+
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
 
     QTimer *timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(update()));
     timer->start(100);
 }
 
+SetPandC::SetPandC(QWidget * parent) : QPushButton( parent)
+{
+}
 
+void SetPandC::mousePressEvent(QMouseEvent *event){
+    double tt = sqrtf(powf(world_look_vector[0],2) + powf(world_look_vector[1],2) + powf(world_look_vector[2],2));
+
+//    glm::vec4 result = projection * view * model * glm::vec4(glm::vec3(cc[0], cc[1], cc[2]), 1.0);
+
+//    cc[0] = result[0];
+//    cc[1] = result[1];
+//    cc[2] = result[2];
+//    cc[0] = wc[0] - wv[0] * le/150.0 + world_look_vector[0]/tt * upp/150.0;
+//    cc[1] = wc[1] - wv[1] * le/150.0 + world_look_vector[1]/tt * upp/150.0;
+//    cc[2] = wc[2] - wv[2] * le/150.0 + world_look_vector[2]/tt * upp/150.0;
+
+//    camera_up_vector[0] = world_up_vector[0];
+//    camera_up_vector[1] = world_up_vector[2];
+//    camera_up_vector[2] = world_up_vector[2];
+
+    rot_set = rot;
+}
 
 
 void GLWidget::resizeGL(int w, int h)
@@ -424,18 +522,7 @@ void FancySlider7::sliderChange(QAbstractSlider::SliderChange change)
     rot = value() / 99.0 * 360.0;
 }
 
-SetPandC::SetPandC(QWidget * parent) : QPushButton( parent)
-{
-}
 
-void SetPandC::mousePressEvent(QMouseEvent *event){
-    double tt = sqrtf(powf(world_look_vector[0],2) + powf(world_look_vector[1],2) + powf(world_look_vector[2],2));
-    cc[0] = wc[0] + wv[0] * le/150.0 + world_look_vector[0]/tt * upp/150.0;
-    cc[1] = wc[1] + wv[1] * le/150.0 + world_look_vector[1]/tt * upp/150.0;
-    cc[2] = wc[2] + wv[2] * le/150.0 + world_look_vector[2]/tt * upp/150.0;
-
-    rot_set = rot;
-}
 
 PLookFix::PLookFix(QWidget * parent) : QPushButton( parent)
 {
