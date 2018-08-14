@@ -186,7 +186,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_3">
+           <widget class="PLookFix" name="pushButton_3">
             <property name="text">
              <string>&amp;P Look Fix</string>
             </property>
@@ -196,6 +196,20 @@
            <widget class="PLookReset" name="pushButton">
             <property name="text">
              <string>&amp;P Look Reset</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_4">
+            <property name="text">
+             <string>Level Up</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_5">
+            <property name="text">
+             <string>Level Down</string>
             </property>
            </widget>
           </item>
@@ -260,6 +274,11 @@
    <class>SetPandC</class>
    <extends>QPushButton</extends>
    <header>setpandc.h</header>
+  </customwidget>
+  <customwidget>
+   <class>PLookFix</class>
+   <extends>QPushButton</extends>
+   <header>plookfix.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

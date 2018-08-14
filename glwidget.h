@@ -483,4 +483,6 @@ protected:
     virtual void mousePressEvent(QMouseEvent *event);
 };
 
+
+
 #endif // GLWIDGET_H
