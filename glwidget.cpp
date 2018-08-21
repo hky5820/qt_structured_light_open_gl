@@ -519,7 +519,6 @@ PLookFix::PLookFix(QWidget * parent) : QPushButton( parent)
 }
 
 void PLookFix::mousePressEvent(QMouseEvent *event){
-
     mod++;
     if(mod >5){
         mod = 5;
